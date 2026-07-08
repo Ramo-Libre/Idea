@@ -30,6 +30,7 @@
 		"typescript": "^7.0.2"
 	},
 	"devDependencies": {
+		"@ramo-libre/ui-themes": "^1.1.0",
 		"@typescript-eslint/parser": "^8.63.0",
 		"eslint": "^10.6.0",
 		"eslint-plugin-astro": "^2.1.1",
