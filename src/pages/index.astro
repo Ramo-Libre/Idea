@@ -1,9 +1,14 @@
 ---
 import MainLayout from '@/layouts/MainLayout.astro';
+import AppShell from '@/layouts/AppShell.astro';
 ---
 
 <MainLayout>
-	<main class="text-content grid h-dvh place-items-center">
-		<p class="text-2xl font-bold tracking-wide">Ramo Libre Idea</p>
-	</main>
+  <AppShell>
+    <main class="grid h-full place-items-center">
+      <p class="text-2xl font-bold tracking-wide text-content/20">
+        Selecciona un archivo
+      </p>
+    </main>
+  </AppShell>
 </MainLayout>
