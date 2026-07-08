@@ -6,22 +6,18 @@
 		FileText,
 		LayoutDashboard,
 		Menu,
-		User,
-		Download,
+		Bolt,
 	} from '@lucide/svelte';
+	import { fly, fade } from 'svelte/transition';
 
 	type FileType = 'note' | 'board';
-
-	type DummyFile = {
-		id: string;
-		name: string;
-		type: FileType;
-	};
+	type DummyFile = { id: string; name: string; type: FileType };
 
 	let { children } = $props();
 
 	let collapsed = $state(false);
 	let activeId = $state<string | null>(null);
+	let mobileOpen = $state(false);
 
 	const typeIcon: Record<FileType, typeof FileText> = {
 		note: FileText,
@@ -47,71 +43,98 @@
 	function selectFile(id: string) {
 		activeId = id;
 	}
+
+	function openMobile() {
+		mobileOpen = true;
+	}
+
+	function closeMobile() {
+		mobileOpen = false;
+	}
 </script>
 
-<div
-	class="grid h-dvh overflow-hidden"
-	style="grid-template-rows: 40px 1fr; grid-template-columns: {collapsed ? '60px' : '220px'} 1fr"
->
-	<!-- ═══ TOP BAR ═══ -->
-	<header
-		class="col-span-2 flex items-center justify-between border-b border-base-400 bg-base-100 px-3"
-	>
-		<div class="flex items-center gap-2">
+{#snippet sidebarBody()}
+	<nav class="flex-1 space-y-px overflow-y-auto px-3 pb-3">
+		{#each dummyFiles as file (file.id)}
+			{@const Icon = typeIcon[file.type]}
+			{@const color = typeColor[file.type]}
+			{@const active = activeId === file.id}
 			<button
-				class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
+				class="relative flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2 text-left text-sm font-medium transition-[background,opacity] duration-100 hover:opacity-90 {collapsed
+					? 'justify-center'
+					: ''} {active
+					? 'opacity-100'
+					: 'text-content/60 hover:bg-base-300'}"
+				onclick={() => selectFile(file.id)}
 			>
-				<Menu size={16} />
+				{#if active}
+					<span
+						class="absolute -left-2 h-[18px] w-[3px] rounded-r-[3px]"
+						style="background: {color}"
+					></span>
+				{/if}
+				<span
+					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-white"
+					style="background: {color}"
+				>
+					<Icon size={15} />
+				</span>
+				{#if !collapsed}
+					{file.name}
+				{/if}
 			</button>
-			<span class="text-sm font-medium text-content">Mi Idea</span>
-		</div>
+		{/each}
+	</nav>
+{/snippet}
 
-		<div class="flex items-center gap-1">
-			<button
-				class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
-			>
-				<User size={15} />
-			</button>
-			<button
-				class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
-			>
-				<Download size={15} />
-			</button>
-		</div>
-	</header>
-
-	<!-- ═══ SIDEBAR ═══ -->
+<!-- ═══ DESKTOP (sm+) ═══ -->
+<div class="hidden sm:flex h-dvh">
 	<aside
-		class="flex flex-col overflow-hidden border-r border-base-400 bg-base-200 transition-all duration-200 ease-linear"
+		class="flex flex-col overflow-hidden border-r border-base-400 bg-base-200 transition-all duration-200 ease-linear {collapsed
+			? 'w-[60px] min-w-[60px]'
+			: 'w-[220px] min-w-[220px]'}"
 	>
-		<!-- Header -->
+		<!-- Sidebar header: burger + project name + collapse -->
 		<div
-			class="flex items-center {collapsed
-				? 'justify-center px-3 pt-3 pb-2'
-				: 'justify-between px-3 pt-3 pb-2'}"
+			class="flex items-center border-b border-base-400 bg-base-100 {collapsed
+				? 'flex-col justify-center gap-1 px-2 py-2'
+				: 'justify-between gap-2 px-3 py-2'}"
 		>
-			{#if !collapsed}
+			<div class="flex items-center {collapsed ? 'flex-col gap-1' : 'gap-2'}">
+				<button
+					class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
+					aria-label="Cambiar proyecto"
+				>
+					<Menu size={16} />
+				</button>
+				{#if !collapsed}
+					<span class="text-sm font-medium text-content">Mi Idea</span>
+				{/if}
+			</div>
+			<button
+				class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
+				onclick={toggleCollapse}
+				aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+			>
+				{#if collapsed}
+					<PanelLeftOpen size={16} />
+				{:else}
+					<PanelLeftClose size={16} />
+				{/if}
+			</button>
+		</div>
+
+		<!-- Section label (only when expanded) -->
+		{#if !collapsed}
+			<div class="flex items-center px-3 pt-3 pb-2">
 				<span
 					class="text-[11px] font-semibold tracking-widest uppercase text-content/35"
 				>
 					Archivos
 				</span>
-			{/if}
-			<button
-				class="flex cursor-pointer items-center justify-center rounded-md p-1 text-content/40 hover:bg-base-300 hover:text-content"
-				onclick={toggleCollapse}
-				aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
-			>
-				{#if collapsed}
-					<PanelLeftOpen size={15} />
-				{:else}
-					<PanelLeftClose size={15} />
-				{/if}
-			</button>
-		</div>
+			</div>
 
-		<!-- Create buttons -->
-		{#if !collapsed}
+			<!-- Create buttons -->
 			<div class="flex gap-2 px-3 pb-2">
 				<button
 					class="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-[10px] bg-base-300/50 py-1.5 text-xs font-medium text-content/60 hover:bg-base-300 hover:text-content"
@@ -128,19 +151,125 @@
 			</div>
 		{/if}
 
-		<!-- File list -->
+		{@render sidebarBody()}
+
+		<!-- Config button al fondo -->
+		<div class="border-t border-base-400 p-2">
+			<button
+				class="flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2 text-left text-sm font-medium transition-[background,opacity] duration-100 text-content/60 hover:bg-base-300 hover:opacity-90 {collapsed
+					? 'justify-center px-0'
+					: ''}"
+			>
+				<Bolt size={16} class="shrink-0 text-content/60" />
+				{#if !collapsed}
+					<span class="text-sm font-medium">Config</span>
+				{/if}
+			</button>
+		</div>
+	</aside>
+
+	<main class="flex-1 overflow-y-auto bg-base-200">
+		{@render children()}
+	</main>
+</div>
+
+<!-- ═══ MOBILE (max-sm) ═══ -->
+<div class="sm:hidden flex h-dvh flex-col">
+	<!-- Top bar minimal: solo burger + nombre -->
+	<header
+		class="flex items-center justify-between border-b border-base-400 bg-base-100 px-3 py-2.5"
+	>
+		<div class="flex items-center gap-3">
+			<button
+				class="flex cursor-pointer items-center justify-center rounded-md p-1 text-content/40 hover:bg-base-300 hover:text-content"
+				onclick={openMobile}
+				aria-label="Abrir menú"
+			>
+				<PanelLeftOpen size={20} />
+			</button>
+			<span class="text-sm font-medium text-content">Mi Idea</span>
+		</div>
+	</header>
+
+	<main class="flex-1 overflow-y-auto bg-base-200">
+		{@render children()}
+	</main>
+</div>
+
+<!-- ═══ MOBILE DRAWER (animated) ═══ -->
+{#if mobileOpen}
+	<div
+		transition:fade={{ duration: 150 }}
+		class="fixed inset-0 z-40 bg-black/50 sm:hidden"
+		onclick={closeMobile}
+		role="button"
+		tabindex="0"
+		onkeydown={(e) => {
+			if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') closeMobile();
+		}}
+	></div>
+	<aside
+		transition:fly={{ duration: 200, x: -300 }}
+		class="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col overflow-hidden bg-base-200 shadow-xl sm:hidden"
+	>
+		<!-- Drawer header: burger + project name + close (mismo ícono que desktop) -->
+		<div class="flex items-center justify-between border-b border-base-400 bg-base-100 px-3 py-2.5">
+			<div class="flex items-center gap-2">
+				<button
+					class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
+					aria-label="Cambiar proyecto"
+				>
+					<Menu size={16} />
+				</button>
+				<span class="text-sm font-medium text-content">Mi Idea</span>
+			</div>
+			<button
+				class="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
+				onclick={closeMobile}
+				aria-label="Cerrar"
+			>
+				<PanelLeftClose size={16} />
+			</button>
+		</div>
+
+		<!-- Section label -->
+		<div class="px-3 pt-3 pb-2">
+			<span
+				class="text-[11px] font-semibold tracking-widest uppercase text-content/35"
+			>
+				Archivos
+			</span>
+		</div>
+
+		<!-- Create buttons -->
+		<div class="flex gap-2 px-3 pb-2">
+			<button
+				class="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-[10px] bg-base-300/50 py-1.5 text-xs font-medium text-content/60 hover:bg-base-300 hover:text-content"
+			>
+				<Plus size={13} />
+				Nota
+			</button>
+			<button
+				class="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-[10px] bg-base-300/50 py-1.5 text-xs font-medium text-content/60 hover:bg-base-300 hover:text-content"
+			>
+				<Plus size={13} />
+				Board
+			</button>
+		</div>
+
 		<nav class="flex-1 space-y-px overflow-y-auto px-3 pb-3">
 			{#each dummyFiles as file (file.id)}
 				{@const Icon = typeIcon[file.type]}
 				{@const color = typeColor[file.type]}
 				{@const active = activeId === file.id}
 				<button
-					class="relative flex w-full cursor-pointer text-content/60 items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2 text-left text-sm font-medium transition-[background,opacity] duration-100 hover:opacity-90 {collapsed
-						? 'justify-center'
-						: ''} {active
+					class="relative flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2 text-left text-sm font-medium transition-[background,opacity] duration-100 hover:opacity-90 {active
 						? 'opacity-100'
-						: 'hover:bg-base-300'}"
-					onclick={() => selectFile(file.id)}
+						: 'text-content/60 hover:bg-base-300'}"
+					onclick={() => {
+						selectFile(file.id);
+						closeMobile();
+					}}
 				>
 					{#if active}
 						<span
@@ -154,16 +283,19 @@
 					>
 						<Icon size={15} />
 					</span>
-					{#if !collapsed}
-						{file.name}
-					{/if}
+					{file.name}
 				</button>
 			{/each}
 		</nav>
-	</aside>
 
-	<!-- ═══ MAIN ═══ -->
-	<main class="overflow-y-auto bg-base-200">
-		{@render children()}
-	</main>
-</div>
+		<!-- Config button al fondo del drawer -->
+		<div class="border-t border-base-400 p-2">
+			<button
+				class="flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2 text-left text-sm font-medium transition-[background,opacity] duration-100 text-content/60 hover:bg-base-300 hover:opacity-90"
+			>
+				<Bolt size={16} class="shrink-0 text-content/60" />
+				<span class="text-sm font-medium">Config</span>
+			</button>
+		</div>
+	</aside>
+{/if}
