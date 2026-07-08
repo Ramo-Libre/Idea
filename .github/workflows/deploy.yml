@@ -1,0 +1,50 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: 'prod-deploy'
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: deploy
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version tag
+        run: |
+          git fetch --tags --force
+          VERSION_TAG=$(git tag --list "v*" --sort=-v:refname | head -n 1)
+          VERSION_NO_V=${VERSION_TAG#v}
+          echo "VERSION_NO_V=${VERSION_NO_V}" >> "$GITHUB_ENV"
+          echo "Resolved version tag: $VERSION_TAG"
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: 🏷️ Update version files
+        run: bun scripts/update-version.js ${{ env.VERSION_NO_V }}
+
+      - name: 🧶 Install Dependencies
+        run: bun install --frozen-lockfile
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+
+      - name: 🏗️ Build
+        run: bun run build
+
+      - name: 🚀 Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=ramolibreidea --branch=main
