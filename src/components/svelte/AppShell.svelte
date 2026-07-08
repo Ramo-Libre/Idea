@@ -7,17 +7,24 @@
 		LayoutDashboard,
 		Menu,
 		Bolt,
+		Pen,
+		Columns2,
+		Rows2,
+		Eye,
 	} from '@lucide/svelte';
 	import { fly, fade } from 'svelte/transition';
+	import NoteEditor from './NoteEditor.svelte';
 
 	type FileType = 'note' | 'board';
 	type DummyFile = { id: string; name: string; type: FileType };
+	type EditorMode = 'edit' | 'split' | 'preview';
 
 	let { children } = $props();
 
 	let collapsed = $state(false);
 	let activeId = $state<string | null>(null);
 	let mobileOpen = $state(false);
+	let editorMode = $state<EditorMode>('split');
 
 	const typeIcon: Record<FileType, typeof FileText> = {
 		note: FileText,
@@ -36,12 +43,37 @@
 		{ id: '4', name: 'Mapa conceptual', type: 'board' },
 	];
 
+	const noteContent: Record<string, string> = {
+		'1': '# Apuntes iniciales\n\n## Ideas principales\n\n- Primera idea\n- Segunda idea\n\n**Texto en negrita** y *cursiva*\n\n```js\nconst hola = "mundo";\n```\n\n> Cita importante',
+		'2': '# Referencias\n\n1. Fuente uno\n2. Fuente dos\n3. Fuente tres\n\n---\n\n| Columna A | Columna B |\n|-----------|-----------|\n| Celda 1   | Celda 2   |',
+	};
+
+	const modeIcons: Record<EditorMode, typeof Pen> = {
+		edit: Pen,
+		split: Columns2,
+		preview: Eye,
+	};
+
+	const mobileModeIcons: Record<EditorMode, typeof Pen> = {
+		edit: Pen,
+		split: Rows2,
+		preview: Eye,
+	};
+
+	let activeFile = $derived(
+		activeId ? (dummyFiles.find((f) => f.id === activeId) ?? null) : null
+	);
+
 	function toggleCollapse() {
 		collapsed = !collapsed;
 	}
 
 	function selectFile(id: string) {
 		activeId = id;
+	}
+
+	function setEditorMode(mode: EditorMode) {
+		editorMode = mode;
 	}
 
 	function openMobile() {
@@ -96,7 +128,7 @@
 	>
 		<!-- Sidebar header: burger + project name + collapse -->
 		<div
-			class="flex items-center border-b border-base-400 bg-base-100 {collapsed
+			class="flex items-center border-b border-base-400 bg-base-100 h-12 {collapsed
 				? 'flex-col justify-center gap-1 px-2 py-2'
 				: 'justify-between gap-2 px-3 py-2'}"
 		>
@@ -168,31 +200,120 @@
 		</div>
 	</aside>
 
-	<main class="flex-1 overflow-y-auto bg-base-200">
-		{@render children()}
+	<!-- ═══ MAIN: DESKTOP ═══ -->
+	<main class="flex-1 flex flex-col overflow-hidden bg-base-200">
+		{#if activeFile}
+			<!-- Toolbar: nombre + mode switcher -->
+			<header
+				class="flex items-center justify-between border-b border-base-400 bg-base-100 px-3 py-2 h-12"
+			>
+				<span class="text-xs text-content/40">{activeFile.name}</span>
+				<div
+					class="flex items-center gap-0.5 rounded-lg bg-base-200 p-0.5"
+				>
+					{#each ['edit', 'split', 'preview'] as mode}
+						{@const Icon = modeIcons[mode as EditorMode]}
+						{@const isActive = editorMode === mode}
+						<button
+							class="flex cursor-pointer items-center justify-center rounded-md p-1.5 transition-colors {isActive
+								? 'bg-base-100 text-content shadow-sm'
+								: 'text-content/40 hover:text-content'}"
+							onclick={() => setEditorMode(mode as EditorMode)}
+							aria-label={mode}
+						>
+							<Icon size={16} />
+						</button>
+					{/each}
+				</div>
+			</header>
+
+			<!-- Content area -->
+			<div class="flex-1 overflow-hidden">
+				{#if activeFile.type === 'note'}
+					<NoteEditor
+						content={noteContent[activeFile.id] ?? ''}
+						mode={editorMode}
+					/>
+				{:else}
+					<div class="grid h-full place-items-center">
+						<div class="flex flex-col items-center gap-3">
+							<LayoutDashboard size={40} class="text-content/15" />
+							<p class="text-sm text-content/20">{activeFile.name}</p>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="flex-1 overflow-y-auto">
+				{@render children()}
+			</div>
+		{/if}
 	</main>
 </div>
 
 <!-- ═══ MOBILE (max-sm) ═══ -->
 <div class="sm:hidden flex h-dvh flex-col">
-	<!-- Top bar minimal: solo burger + nombre -->
+	<!-- Top bar: breadcrumb cuando hay archivo, solo nombre cuando no -->
 	<header
-		class="flex items-center justify-between border-b border-base-400 bg-base-100 px-3 py-2.5"
+		class="flex items-center justify-between border-b border-base-400 bg-base-100 px-3 {activeFile ? 'py-2' : 'py-2.5'}"
 	>
-		<div class="flex items-center gap-3">
+		<div class="flex items-center gap-1.5 min-w-0">
 			<button
-				class="flex cursor-pointer items-center justify-center rounded-md p-1 text-content/40 hover:bg-base-300 hover:text-content"
+				class="flex shrink-0 cursor-pointer items-center justify-center rounded-md p-1.5 text-content/40 hover:bg-base-300 hover:text-content"
 				onclick={openMobile}
 				aria-label="Abrir menú"
 			>
-				<PanelLeftOpen size={20} />
+				<PanelLeftOpen size={16} />
 			</button>
-			<span class="text-sm font-medium text-content">Mi Idea</span>
+			<span class="text-sm font-medium text-content shrink-0">Mi Idea</span>
+			{#if activeFile}
+				<span class="text-sm text-content/20 shrink-0">›</span>
+				<span class="text-sm text-content/60 truncate">{activeFile.name}</span>
+			{/if}
 		</div>
+		{#if activeFile}
+			<div class="flex items-center gap-0.5 rounded-lg bg-base-200 p-0.5 shrink-0">
+				{#each ['edit', 'split', 'preview'] as mode}
+					{@const Icon = mobileModeIcons[mode as EditorMode]}
+					{@const isActive = editorMode === mode}
+					<button
+						class="flex cursor-pointer items-center justify-center rounded-md p-1.5 transition-colors {isActive
+							? 'bg-base-100 text-content shadow-sm'
+							: 'text-content/40 hover:text-content'}"
+						onclick={() => setEditorMode(mode as EditorMode)}
+						aria-label={mode}
+					>
+						<Icon size={16} />
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</header>
 
-	<main class="flex-1 overflow-y-auto bg-base-200">
-		{@render children()}
+	<!-- ═══ MAIN: MOBILE ═══ -->
+	<main class="flex-1 flex flex-col overflow-hidden bg-base-200">
+		{#if activeFile}
+			<!-- Content area -->
+			<div class="flex-1 overflow-hidden">
+				{#if activeFile.type === 'note'}
+					<NoteEditor
+						content={noteContent[activeFile.id] ?? ''}
+						mode={editorMode}
+					/>
+				{:else}
+					<div class="grid h-full place-items-center">
+						<div class="flex flex-col items-center gap-3">
+							<LayoutDashboard size={40} class="text-content/15" />
+							<p class="text-sm text-content/20">{activeFile.name}</p>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="flex-1 overflow-y-auto">
+				{@render children()}
+			</div>
+		{/if}
 	</main>
 </div>
 
