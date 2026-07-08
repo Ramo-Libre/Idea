@@ -16,15 +16,13 @@
 
 	import {
 		indentOnInput,
-		syntaxHighlighting,
-		defaultHighlightStyle,
-		bracketMatching,
 	} from '@codemirror/language';
 
 	import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 	import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 	import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 	import { lintKeymap } from '@codemirror/lint';
+	import { cmEditorTheme } from '../../lib/cm-editor-theme';
 
 	type EditorMode = 'edit' | 'split' | 'preview';
 
@@ -56,9 +54,8 @@
 				drawSelection(),
 				dropCursor(),
 				EditorState.allowMultipleSelections.of(true),
+				...cmEditorTheme,
 				indentOnInput(),
-				syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-				bracketMatching(),
 				closeBrackets(),
 				autocompletion(),
 				rectangularSelection(),
