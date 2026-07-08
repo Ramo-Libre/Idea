@@ -90,12 +90,12 @@
 	class="h-full overflow-hidden {mode === 'edit'
 		? ''
 		: mode === 'split'
-			? 'grid grid-cols-2 divide-x divide-base-400 max-sm:grid-cols-1 max-sm:grid-rows-2 max-sm:divide-y max-sm:divide-x-0'
+			? 'grid grid-cols-2 divide-x divide-base-400 max-sm:grid-cols-1 max-sm:grid-rows-2 max-sm:divide-x-0'
 			: ''}"
 >
 	<!-- CodeMirror -->
 	<div
-		class="h-full overflow-y-auto {mode === 'preview' ? 'hidden' : ''} max-sm:order-2"
+		class="h-full overflow-y-auto {mode === 'preview' ? 'hidden' : ''} max-sm:order-2 max-sm:border-t max-sm:border-base-400"
 		bind:this={editorEl}
 	></div>
 
@@ -115,7 +115,7 @@
 		height: 100%;
 	}
 	:global(.cm-scroller) {
-		overflow: auto;
+		overflow-y: scroll;
 		font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 		font-size: 14px;
 		line-height: 1.6;
@@ -130,6 +130,24 @@
 	}
 	:global(.cm-line) {
 		padding: 0;
+	}
+
+	/* ── Scrollbar siempre visible ── */
+	:global(.md-preview) {
+		overflow-y: scroll;
+		scrollbar-width: auto;
+		scrollbar-color: var(--color-base-400) transparent;
+	}
+	:global(.cm-scroller::-webkit-scrollbar),
+	:global(.md-preview::-webkit-scrollbar) {
+		width: 8px;
+		height: 8px;
+	}
+	:global(.cm-scroller::-webkit-scrollbar-thumb),
+	:global(.md-preview::-webkit-scrollbar-thumb) {
+		background: var(--color-base-400);
+		border-radius: 4px;
+		min-height: 40px;
 	}
 
 	/* ── Markdown preview styles ── */
